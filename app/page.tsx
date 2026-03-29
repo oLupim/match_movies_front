@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tv2, Play, Hash } from 'lucide-react'
 import { criarSala as criarSalaAPI } from './services/api'
+import Button from './components/Button'
 
 const STREAMINGS = [
-  { id: 8,    nome: 'NETFLIX'    },
-  { id: 9,    nome: 'PRIME'      },
-  { id: 337,  nome: 'DISNEY+'    },
-  { id: 1899, nome: 'MAX'        },
-  { id: 350,  nome: 'APPLE TV'   },
-  { id: 307,  nome: 'GLOBOPLAY'  },
-  { id: 531,  nome: 'PARAMOUNT'  },
+  { id: 8,    nome: 'NETFLIX'   },
+  { id: 9,    nome: 'PRIME'     },
+  { id: 337,  nome: 'DISNEY+'   },
+  { id: 1899, nome: 'MAX'       },
+  { id: 350,  nome: 'APPLE TV'  },
+  { id: 307,  nome: 'GLOBOPLAY' },
+  { id: 531,  nome: 'PARAMOUNT' },
 ]
 
 const GENEROS = [
@@ -42,18 +43,22 @@ export default function Home() {
   const [streamings, setStreamings] = useState<number[]>([])
   const [generos, setGeneros] = useState<number[]>([])
   const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
   async function criarSala(generos: number[], streamings: number[]) {
-  if (streamings.length === 0) return setErro('Selecione pelo menos um streaming')
-  if (generos.length === 0) return setErro('Selecione pelo menos um gênero')
-  setErro('')
-  try {
-    const { salaId } = await criarSalaAPI(generos, streamings)
-    router.push(`/sala/${salaId}/party`)
-  } catch (err) {
-    setErro('Erro ao criar sala. Tente novamente.')
+    if (streamings.length === 0) return setErro('Selecione pelo menos um streaming')
+    if (generos.length === 0) return setErro('Selecione pelo menos um gênero')
+    setErro('')
+    setCarregando(true)
+    try {
+      const { salaId } = await criarSalaAPI(generos, streamings)
+      router.push(`/sala/${salaId}`)
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : 'Erro ao criar sala')
+    } finally {
+      setCarregando(false)
+    }
   }
-}
 
   function entrarSala() {
     if (!codigo.trim()) return setErro('Digite o código da sala')
@@ -94,25 +99,13 @@ export default function Home() {
               exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}
               style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              <button onClick={() => setTela('criar')} style={{
-                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontFamily: 'Poppins, sans-serif'
-              }}>
+              <Button onClick={() => setTela('criar')} larguraTotal>
                 <Tv2 size={18} /> Criar Sala
-              </button>
+              </Button>
 
-              <button onClick={() => setTela('entrar')} style={{
-                width: '100%', padding: '16px', borderRadius: 16,
-                border: '1px solid #2D2D44', background: '#1E1E2E',
-                color: '#E5E7EB', fontWeight: 700, fontSize: 16, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontFamily: 'Poppins, sans-serif'
-              }}>
+              <Button variante="secundario" onClick={() => setTela('entrar')} larguraTotal>
                 <Play size={18} /> Entrar em Sala
-              </button>
+              </Button>
 
               <p style={{ textAlign: 'center', color: '#4B5563', fontSize: 12, marginTop: 24 }}>
                 Gustavo Lupim &amp; Guilherme Alves
@@ -127,12 +120,11 @@ export default function Home() {
               exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }}
               style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-              <button onClick={() => { setTela('inicio'); setErro('') }}
-                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', textAlign: 'left', fontSize: 14, fontFamily: 'Poppins, sans-serif' }}>
+              <Button variante="ghost" onClick={() => { setTela('inicio'); setErro('') }}>
                 ← Voltar
-              </button>
+              </Button>
 
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: "#eeeeee" }}>Nova sala</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#eeeeee' }}>Nova sala</h2>
 
               {/* Gêneros */}
               <div>
@@ -178,14 +170,10 @@ export default function Home() {
                 <p style={{ color: '#F87171', fontSize: 12, textAlign: 'center' }}>⚠️ {erro}</p>
               )}
 
-              <button onClick={() => criarSala(generos, streamings)} style={{
-                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
-                fontFamily: 'Poppins, sans-serif'
-              }}>
-                Criar Sala →
-              </button>
+              <Button onClick={() => criarSala(generos, streamings)} larguraTotal disabled={carregando}>
+                {carregando ? 'Criando...' : 'Criar Sala →'}
+              </Button>
+
             </motion.div>
           )}
 
@@ -196,12 +184,11 @@ export default function Home() {
               exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }}
               style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-              <button onClick={() => { setTela('inicio'); setErro('') }}
-                style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', textAlign: 'left', fontSize: 14, fontFamily: 'Poppins, sans-serif' }}>
+              <Button variante="ghost" onClick={() => { setTela('inicio'); setErro('') }}>
                 ← Voltar
-              </button>
+              </Button>
 
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: "#eeeeee" }}>Entrar em sala</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#eeeeee' }}>Entrar em sala</h2>
 
               <div>
                 <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -229,14 +216,10 @@ export default function Home() {
                 <p style={{ color: '#F87171', fontSize: 12, textAlign: 'center' }}>⚠️ {erro}</p>
               )}
 
-              <button onClick={entrarSala} style={{
-                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
-                fontFamily: 'Poppins, sans-serif'
-              }}>
+              <Button onClick={entrarSala} larguraTotal>
                 Entrar →
-              </button>
+              </Button>
+
             </motion.div>
           )}
 
