@@ -30,10 +30,23 @@ const GENEROS = [
   { id: 14,    nome: 'Fantasy'     },
 ]
 
-function toggle(lista: number[], item: number) {
-  return lista.includes(item)
-    ? lista.filter(i => i !== item)
-    : [...lista, item]
+function selecionar(lista: number[], item: number) {
+  const novaLista: number[] = []
+  let temItem = false
+  
+  for (let i = 0; i < lista.length; i++) {
+    if (lista[i] === item) {
+      temItem = true
+    } else {
+      novaLista.push(lista[i])
+    }
+  }
+  
+  if (!temItem) {
+    novaLista.push(item)
+  }
+  
+  return novaLista
 }
 
 export default function Home() {
@@ -80,8 +93,8 @@ export default function Home() {
           <Tv2 size={32} color="white" />
         </div>
         <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0 }}>
-          <span style={{ color: '#ffffff' }}>Tinder dos </span>
-          <span style={{ color: '#A855F7' }}>Filmes</span>
+          <span style={{ color: '#ffffff' }}>Match </span>
+          <span style={{ color: '#A855F7' }}>Movies</span>
         </h1>
         <p style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
           Você finalmente vai achar um filme que todos gostem!
@@ -133,7 +146,7 @@ export default function Home() {
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {GENEROS.map(g => (
-                    <button key={g.id} onClick={() => setGeneros(toggle(generos, g.id))} style={{
+                    <button key={g.id} onClick={() => setGeneros(selecionar(generos, g.id))} style={{
                       padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 500,
                       cursor: 'pointer', fontFamily: 'Poppins, sans-serif',
                       background: generos.includes(g.id) ? '#7C3AED22' : '#1E1E2E',
@@ -153,7 +166,7 @@ export default function Home() {
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {STREAMINGS.map(s => (
-                    <button key={s.id} onClick={() => setStreamings(toggle(streamings, s.id))} style={{
+                    <button key={s.id} onClick={() => setStreamings(selecionar(streamings, s.id))} style={{
                       padding: '12px 4px', borderRadius: 12, fontSize: 10, fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'Poppins, sans-serif',
                       background: streamings.includes(s.id) ? '#7C3AED22' : '#1E1E2E',

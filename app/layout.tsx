@@ -1,10 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tinder dos Filmes",
-  description: "Match de filmes",
+  title: "Match Movies",
+  description: "Encontre um filme que todos queiram assistir",
 };
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export default function RootLayout({
   children,
