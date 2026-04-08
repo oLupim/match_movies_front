@@ -1,26 +1,20 @@
-const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') || 'ws://localhost:8080'
+const WS_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
+  .replace('http://', 'ws://')
+  .replace('https://', 'wss://')
 
 let ws: WebSocket | null = null
 
 // ── CONECTAR ──
-export function conectar(salaId: string): WebSocket {
-  if (ws?.readyState === WebSocket.OPEN) return ws
+export function conectar(salaId: string, userId: string): WebSocket {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return ws
 
-  ws = new WebSocket(`${WS_URL}/ws/${salaId}`)
+  ws = new WebSocket(`${WS_URL}/ws/sala/${salaId}?userId=${userId}`)
+ 
 
-  ws.onopen = () => {
-    console.log('✅ WebSocket conectado')
-  }
 
-  ws.onclose = () => {
-    console.log('❌ WebSocket desconectado')
-    ws = null
-  }
-
-  ws.onerror = (err) => {
-    console.error('Erro de conexão:', err)
-  }
-
+  ws.onopen = () => console.log('✅ WebSocket conectado')
+  ws.onclose = () => console.log('❌ WebSocket desconectado')
+  ws.onerror = (err: Event) => console.error('Erro de conexão:', err)
   return ws
 }
 
@@ -34,7 +28,7 @@ export function desconectar() {
 export function emitirVoto(filmeId: number, voto: 'like' | 'dislike') {
   if (ws?.readyState !== WebSocket.OPEN) return
   ws.send(JSON.stringify({
-    type: 'voto',
+    tipo: 'voto',
     payload: { filmeId, voto }
   }))
 }
@@ -43,32 +37,48 @@ export function emitirVoto(filmeId: number, voto: 'like' | 'dislike') {
 type Callback = (data: any) => void
 const listeners: Record<string, Callback> = {}
 
-function registrarListener(tipo: string, callback: Callback) {
-  listeners[tipo] = callback
+export function ouvirParticipantes(callback: Callback) {
+  listeners['jogador_entrou'] = callback
+  listeners['jogador_saiu'] = callback
+}
 
-  if (ws) {
-    ws.onmessage = (event) => {
+export function ouvirMatch(callback: Callback) {
+  listeners['match'] = callback
+}
+
+export function ouvirVotoRegistrado(callback: Callback) {
+  listeners['voto_registrado'] = callback
+}
+
+// dispatcher central — chama no useEffect da página
+export function iniciarDispatcher() {
+  if (!ws) return
+  ws.onmessage = (event) => {
+    try {
       const msg = JSON.parse(event.data)
-      const fn = listeners[msg.type]
-      if (fn) fn(msg.payload)
+      const cb = listeners[msg.tipo]
+      if (cb) cb(msg.payload)
+    } catch {
+      console.error('Erro ao parsear mensagem WebSocket')
     }
   }
 }
 
-export function ouvirParticipantes(callback: (players: any[]) => void) {
-  registrarListener('players', (payload) => callback(payload.players))
-}
-
-export function ouvirStatusVoto(callback: (data: { likes: number, total: number }) => void) {
-  registrarListener('voto_status', callback)
-}
-
-export function ouvirMatch(callback: (data: { filmeId: number }) => void) {
-  registrarListener('match', callback)
+export function ouvirSalaAtual(callback: Callback) {
+  listeners['sala_atual'] = callback
 }
 
 // ── REMOVER LISTENERS ──
 export function removerListeners() {
-  Object.keys(listeners).forEach(key => delete listeners[key])
+  Object.keys(listeners).forEach(k => delete listeners[k])
   if (ws) ws.onmessage = null
+}
+
+export function ouvirSalaIniciada(callback: Callback) {
+  listeners['sala_iniciada'] = callback
+}
+
+export function emitirIniciarSala() {
+  if (ws?.readyState !== WebSocket.OPEN) return
+  ws.send(JSON.stringify({ tipo: 'iniciar_sala', payload: {} }))
 }

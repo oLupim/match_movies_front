@@ -65,6 +65,7 @@ export default function Home() {
     setCarregando(true)
     try {
       const { salaId } = await criarSalaAPI(generos, streamings)
+      sessionStorage.setItem('donoDaSala', salaId) 
       router.push(`/sala/${salaId}`)
     } catch (error) {
       setErro(error instanceof Error ? error.message : 'Erro ao criar sala')

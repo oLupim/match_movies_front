@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion'
 import { Heart, X, Users } from 'lucide-react'
 import { buscarFilmesDaSala, buscarSala } from '../../../services/api'
+import { conectar, desconectar, emitirVoto, iniciarDispatcher, ouvirMatch, ouvirVotoRegistrado, ouvirParticipantes, removerListeners, ouvirSalaAtual, ouvirSalaIniciada } from '../../../services/socket'
 import LoadingSpinner from '../../../components/LoadingSpinner'
 import FilmeCard from '../../../components/FilmeCard'
 import MatchPopup from '../../../components/MatchPopup'
@@ -46,12 +47,19 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
   const [filmes, setFilmes] = useState<Filme[]>([])
   const [index, setIndex] = useState(0)
   const [match, setMatch] = useState<Filme | null>(null)
-  const [jogadoresVotaram, setJogadoresVotaram] = useState(1)
+  const [jogadoresVotaram, setJogadoresVotaram] = useState(0)
   const [totalJogadores, setTotalJogadores] = useState(0)
   const [carregando, setCarregando] = useState(true)
-
+  const userIdRef = useRef(
+    sessionStorage.getItem('userId') ?? (() => {
+      const id = crypto.randomUUID()
+      sessionStorage.setItem('userId', id)
+      return id
+    })()
+  )
   const x = useMotionValue(0)
 
+  // carrega filmes e sala
   useEffect(() => {
     async function carregar() {
       try {
@@ -59,7 +67,7 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
           buscarFilmesDaSala(id),
           buscarSala(id)
         ])
-        setFilmes(filmesDados)
+        setFilmes(filmesDados.length > 0 ? filmesDados : FILMES_MOCK)
         setTotalJogadores(salaDados.totalJogadores || salaDados.jogadores?.length || 0)
       } catch {
         console.warn('Backend indisponível, usando mock')
@@ -71,20 +79,44 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
     carregar()
   }, [id])
 
+  // conecta websocket
+  useEffect(() => {
+    conectar(id, userIdRef.current)
+    iniciarDispatcher()
+
+    ouvirSalaAtual((data: { total: number }) => {
+      setTotalJogadores(data.total)
+    })
+
+    ouvirParticipantes(() => {
+      setTotalJogadores(prev => prev + 1)
+    })
+
+    ouvirVotoRegistrado(() => {
+      setJogadoresVotaram(prev => prev + 1)
+    })
+
+    ouvirMatch((filmeMatch: Filme) => {
+      setMatch(filmeMatch)
+    })
+
+    return () => {
+      removerListeners()
+      desconectar()
+    }
+  }, [id])
+
   const filme = filmes[index]
 
   function votar(voto: 'like' | 'dislike') {
     if (!filme) return
 
-    if (voto === 'like' && index === 1) {
-      setTimeout(() => setMatch(filme), 300)
-      return
-    }
+    emitirVoto(filme.id, voto)
+    setJogadoresVotaram(0) // reseta contador local ao votar
 
     setTimeout(() => {
       if (index + 1 < filmes.length) {
         setIndex(index + 1)
-        setJogadoresVotaram(Math.floor(Math.random() * totalJogadores) + 1)
       }
       x.set(0)
     }, 300)
@@ -127,7 +159,7 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
         </AnimatePresence>
       </div>
 
-      {/* Botões Like / Dislike */}
+      {/* Botões */}
       <div style={{ padding: '16px 20px 32px', display: 'flex', justifyContent: 'center', gap: 32, flexShrink: 0 }}>
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => votar('dislike')} style={{
           width: 64, height: 64, borderRadius: '50%', border: '2px solid #F87171',
