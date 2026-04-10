@@ -69,7 +69,7 @@ export default function MatchPopup({ match, onContinuar }: Props) {
                   <span style={{ fontSize: 12, color: '#9CA3AF' }}>•</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Star size={12} color="#FCD34D" fill="#FCD34D" />
-                    <span style={{ fontSize: 12, color: '#FCD34D', fontWeight: 700 }}>{match.vote_average}</span>
+                    <span style={{ fontSize: 12, color: '#FCD34D', fontWeight: 700 }}>{match.vote_average.toFixed(1)}</span>
                   </div>
                 </>}
                 {match.streaming && <>

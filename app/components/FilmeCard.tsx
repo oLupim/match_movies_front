@@ -25,6 +25,21 @@ type Props = {
 const POSTER_BASE = 'https://image.tmdb.org/t/p/w500'
 const POSTER_PLACEHOLDER = 'https://via.placeholder.com/500x750/1E1E2E/A855F7?text=Sem+Poster'
 
+const STREAMINGS: Record<number, string> = {
+  8:    'NETFLIX',
+  9:    'PRIME',
+  337:  'DISNEY+',
+  1899: 'MAX',
+  350:  'APPLE TV',
+  307:  'GLOBOPLAY',
+  531:  'PARAMOUNT',
+}
+
+function getNomeStreaming(streaming: string | number) {
+  const id = Number(streaming)
+  return STREAMINGS[id] || streaming
+}
+
 function getPoster(filme: Filme) {
   if (!filme.poster_path) return POSTER_PLACEHOLDER
   if (filme.poster_path.startsWith('http')) return filme.poster_path
@@ -37,6 +52,8 @@ export default function FilmeCard({ filme, onVotar, x }: Props) {
   const rotate = useTransform(x, [-200, 200], [-25, 25])
   const likeOpacity = useTransform(x, [20, 100], [0, 1])
   const dislikeOpacity = useTransform(x, [-100, -20], [1, 0])
+
+  
 
   function handleDragEnd(_: never, info: { offset: { x: number } }) {
     if (info.offset.x > 100) onVotar('like')
@@ -123,7 +140,7 @@ export default function FilmeCard({ filme, onVotar, x }: Props) {
           {filme.streaming && (
             <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF',
               background: '#2D2D44', padding: '3px 8px', borderRadius: 999, flexShrink: 0 }}>
-              {filme.streaming}
+              {getNomeStreaming(filme.streaming)}
             </span>
           )}
         </div>

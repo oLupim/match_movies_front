@@ -12,9 +12,9 @@ export function conectar(salaId: string, userId: string): WebSocket {
  
 
 
-  ws.onopen = () => console.log('✅ WebSocket conectado')
-  ws.onclose = () => console.log('❌ WebSocket desconectado')
-  ws.onerror = (err: Event) => console.error('Erro de conexão:', err)
+  // ws.onopen = () => console.log('✅ WebSocket conectado')
+  // ws.onclose = () => console.log('❌ WebSocket desconectado')
+  // ws.onerror = (err: Event) => console.error('Erro de conexão:', err)
   return ws
 }
 
