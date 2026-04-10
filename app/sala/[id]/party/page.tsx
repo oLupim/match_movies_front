@@ -106,6 +106,20 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
     }
   }, [id])
 
+    // Pré-carrega os posters dos próximos 5 filmes
+  useEffect(() => {
+    if (filmes.length === 0) return
+
+    const proximosFilmes = filmes.slice(index + 1, index + 6)
+    proximosFilmes.forEach(f => {
+      if (!f.poster_path) return
+      const img = new Image()
+      img.src = f.poster_path.startsWith('http')
+        ? f.poster_path
+        : `https://image.tmdb.org/t/p/w500${f.poster_path}`
+    })
+  }, [index, filmes])
+
   const filme = filmes[index]
 
   function votar(voto: 'like' | 'dislike') {
@@ -139,17 +153,11 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
           <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
             Sala #{id.toUpperCase()}
           </p>
-          <p style={{ fontSize: 13, color: '#F0F0F0', margin: 0, fontWeight: 600, marginTop: 2 }}>
+          
+        </div>
+        <p style={{ fontSize: 13, color: '#F0F0F0', margin: 0, fontWeight: 600, marginTop: 2 }}>
             Filme {index + 1} de {filmes.length}
           </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6,
-          background: '#1E1E2E', borderRadius: 20, padding: '6px 12px', border: '1px solid #2D2D44' }}>
-          <Users size={13} color="#A855F7" />
-          <span style={{ fontSize: 12, color: '#A855F7', fontWeight: 600 }}>
-            {jogadoresVotaram}/{totalJogadores}
-          </span>
-        </div>
       </div>
 
       {/* Card */}

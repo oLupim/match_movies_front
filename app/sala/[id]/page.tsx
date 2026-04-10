@@ -32,6 +32,7 @@ useEffect(() => {
   setIsDono(sessionStorage.getItem('donoDaSala') === salaId)
 }, [salaId])
 
+
 useEffect(() => {
   const userId = sessionStorage.getItem('userId') ?? (() => {
     const id = crypto.randomUUID()
@@ -65,6 +66,8 @@ useEffect(() => {
   }
 }, [salaId])
 
+
+
 useEffect(() => {
   async function carregar() {
     try {
@@ -81,6 +84,8 @@ useEffect(() => {
 
 if (carregando) return <LoadingSpinner texto="Carregando sala..." />
 if (!sala) return null
+
+
 
 return (
     <div style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 24, minHeight: '100vh' }}>
@@ -109,3 +114,4 @@ return (
     </div>
   )
 }
+

@@ -82,7 +82,7 @@ export default function FilmeCard({ filme, onVotar, x }: Props) {
       whileTap={{ cursor: 'grabbing' }}
     >
       {/* Poster */}
-      <div style={{ position: 'relative', height: 380 }}>
+      <div style={{ position: 'relative', height: 520 }}>
         <img
           src={getPoster(filme)}
           alt={filme.title}
