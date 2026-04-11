@@ -67,7 +67,7 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
           buscarFilmesDaSala(id),
           buscarSala(id)
         ])
-        setFilmes(filmesDados.length > 0 ? filmesDados : FILMES_MOCK)
+        setFilmes(filmesDados.length > 0 ? embaralhar(filmesDados) : FILMES_MOCK)
         setTotalJogadores(salaDados.totalJogadores || salaDados.jogadores?.length || 0)
       } catch {
         console.warn('Backend indisponível, usando mock')
@@ -78,6 +78,10 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
     }
     carregar()
   }, [id])
+
+  function embaralhar<T>(lista: T[]): T[] {
+    return [...lista].sort(() => Math.random() - 0.5)
+  }
 
   // conecta websocket
   useEffect(() => {
