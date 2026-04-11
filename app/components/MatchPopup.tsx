@@ -22,6 +22,21 @@ type Props = {
 const POSTER_BASE = 'https://image.tmdb.org/t/p/w500'
 const POSTER_PLACEHOLDER = 'https://via.placeholder.com/500x750/1E1E2E/A855F7?text=Sem+Poster'
 
+const STREAMINGS: Record<number, string> = {
+  8:    'NETFLIX',
+  9:    'PRIME',
+  337:  'DISNEY+',
+  1899: 'MAX',
+  350:  'APPLE TV',
+  307:  'GLOBOPLAY',
+  531:  'PARAMOUNT',
+}
+
+function getNomeStreaming(streaming: string | number) {
+  const id = Number(streaming)
+  return STREAMINGS[id] || streaming
+}
+
 function getPoster(filme: Filme) {
   if (!filme.poster_path) return POSTER_PLACEHOLDER
   if (filme.poster_path.startsWith('http')) return filme.poster_path
@@ -75,7 +90,7 @@ export default function MatchPopup({ match, onContinuar }: Props) {
                 {match.streaming && <>
                   <span style={{ fontSize: 12, color: '#9CA3AF' }}>•</span>
                   <span style={{ fontSize: 12, fontWeight: 600, background: '#7C3AED22', color: '#A855F7', padding: '2px 8px', borderRadius: 999 }}>
-                    {match.streaming}
+                    {getNomeStreaming(match.streaming)}
                   </span>
                 </>}
               </div>
