@@ -148,9 +148,18 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
     </div>
   )
 
-  return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
+return (
+  <div
+    style={{
+      height: '100dvh',
+      overflow: 'hidden',
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+    }}
+  >
       {/* Header */}
       <div style={{ padding: '20px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>

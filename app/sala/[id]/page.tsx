@@ -88,8 +88,18 @@ if (!sala) return null
 
 
 return (
-    <div style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 24, minHeight: '100vh' }}>
-
+  <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    >
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}>
         <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 4 }}>Sala criada com sucesso 🎬</p>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: '#eeeeee' }}>Aguardando jogadores</h1>

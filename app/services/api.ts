@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
 
 // ── CRIAR SALA ──
 export async function criarSala(generos: number[], streamings: number[]) {

@@ -81,11 +81,23 @@ export default function Home() {
   }
 
   return (
-    <div style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+    <div
+      style={{
+        width: '100%',
+        height: '100dvh',
+        minHeight: '100dvh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 20px',
+        boxSizing: 'border-box',
+      }}>
 
       {/* Logo */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-        style={{ textAlign: 'center', marginBottom: '32px' }}>
+        style={{ textAlign: 'center', marginBottom: '20px' }}>
         <div style={{
           width: 64, height: 64, borderRadius: 16, margin: '0 auto 16px',
           background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
@@ -132,7 +144,7 @@ export default function Home() {
             <motion.div key="criar"
               initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
               <Button variante="ghost" onClick={() => { setTela('inicio'); setErro('') }}>
                 ← Voltar
