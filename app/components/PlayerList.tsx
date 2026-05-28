@@ -1,7 +1,14 @@
 import { motion } from 'framer-motion'
 import { Users, Crown } from 'lucide-react'
 
-type Player = { id: string }
+type Player = {
+  id: string
+  apelido?: string
+}
+
+function getNomeJogador(player: Player, index: number) {
+  return player.apelido?.trim() || `Jogador ${index + 1}`
+}
 
 export default function PlayerList({ players }: { players: Player[] }) {
   return (
@@ -29,14 +36,14 @@ export default function PlayerList({ players }: { players: Player[] }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0
               }}>
-                {i + 1}
+                {getNomeJogador(p, i).slice(0, 1).toUpperCase()}
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#F0F0F0' }}>Jogador {i + 1}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#F0F0F0' }}>{getNomeJogador(p, i)}</span>
                   {i === 0 && <Crown size={12} color="#F59E0B" />}
                 </div>
-                <span style={{ fontSize: 11, color: '#34D399' }}>● Online</span>
+                <span style={{ fontSize: 11, color: '#34D399' }}>Online</span>
               </div>
             </motion.div>
           ))}

@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion'
-import { Heart, X, Users } from 'lucide-react'
+import { Heart, X } from 'lucide-react'
 import { buscarFilmesDaSala, buscarSala } from '../../../services/api'
-import { conectar, desconectar, emitirVoto, iniciarDispatcher, ouvirMatch, ouvirVotoRegistrado, ouvirParticipantes, removerListeners, ouvirSalaAtual, ouvirSalaIniciada } from '../../../services/socket'
+import { conectar, desconectar, emitirVoto, iniciarDispatcher, ouvirMatch, ouvirVotoRegistrado, ouvirParticipantes, removerListeners, ouvirSalaAtual } from '../../../services/socket'
 import LoadingSpinner from '../../../components/LoadingSpinner'
 import FilmeCard from '../../../components/FilmeCard'
 import MatchPopup from '../../../components/MatchPopup'
+import { filtrarStreamingSelecionado, type StreamingValue } from '../../../utils/streaming'
 
 type Filme = {
   id: number
@@ -17,7 +18,8 @@ type Filme = {
   vote_average: number
   release_date: string
   generos?: string[]
-  streaming?: string
+  streaming?: StreamingValue
+  watch_url?: string
 }
 
 const FILMES_MOCK: Filme[] = [
@@ -41,23 +43,38 @@ const FILMES_MOCK: Filme[] = [
   },
 ]
 
+function getUserIdSessao() {
+  const userIdSalvo = window.sessionStorage.getItem('userId')
+  if (userIdSalvo) return userIdSalvo
+
+  const novoUserId = window.crypto.randomUUID()
+  window.sessionStorage.setItem('userId', novoUserId)
+  return novoUserId
+}
+
+function getApelidoSessao() {
+  return window.sessionStorage.getItem('apelido') || 'Jogador'
+}
+
 export default function Party({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params)
 
   const [filmes, setFilmes] = useState<Filme[]>([])
   const [index, setIndex] = useState(0)
   const [match, setMatch] = useState<Filme | null>(null)
-  const [jogadoresVotaram, setJogadoresVotaram] = useState(0)
-  const [totalJogadores, setTotalJogadores] = useState(0)
+  const [streamingsSelecionados, setStreamingsSelecionados] = useState<number[]>([])
+  const [, setJogadoresVotaram] = useState(0)
+  const [, setTotalJogadores] = useState(0)
   const [carregando, setCarregando] = useState(true)
-  const userIdRef = useRef(
-    sessionStorage.getItem('userId') ?? (() => {
-      const id = crypto.randomUUID()
-      sessionStorage.setItem('userId', id)
-      return id
-    })()
-  )
+  const userIdRef = useRef('')
   const x = useMotionValue(0)
+
+  function normalizarFilme(filme: Filme, streamingsDaSala: number[]) {
+    return {
+      ...filme,
+      streaming: filtrarStreamingSelecionado(filme.streaming, streamingsDaSala),
+    }
+  }
 
   // carrega filmes e sala
   useEffect(() => {
@@ -67,7 +84,11 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
           buscarFilmesDaSala(id),
           buscarSala(id)
         ])
-        setFilmes(filmesDados.length > 0 ? embaralhar(filmesDados) : FILMES_MOCK)
+        const streamingsDaSala = salaDados.filtros?.streamings || []
+        setStreamingsSelecionados(streamingsDaSala)
+        setFilmes(filmesDados.length > 0
+          ? embaralhar(filmesDados.map((f: Filme) => normalizarFilme(f, streamingsDaSala)))
+          : FILMES_MOCK)
         setTotalJogadores(salaDados.totalJogadores || salaDados.jogadores?.length || 0)
       } catch {
         console.warn('Backend indisponível, usando mock')
@@ -85,7 +106,9 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
 
   // conecta websocket
   useEffect(() => {
-    conectar(id, userIdRef.current)
+    userIdRef.current = getUserIdSessao()
+
+    conectar(id, userIdRef.current, getApelidoSessao())
     iniciarDispatcher()
 
     ouvirSalaAtual((data: { total: number }) => {
@@ -101,14 +124,14 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
     })
 
     ouvirMatch((filmeMatch: Filme) => {
-      setMatch(filmeMatch)
+      setMatch(normalizarFilme(filmeMatch, streamingsSelecionados))
     })
 
     return () => {
       removerListeners()
       desconectar()
     }
-  }, [id])
+  }, [id, streamingsSelecionados])
 
     // Pré-carrega os posters dos próximos 5 filmes
   useEffect(() => {
@@ -151,8 +174,9 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
 return (
   <div
     style={{
-      height: '100dvh',
-      overflow: 'hidden',
+      minHeight: '100dvh',
+      overflowX: 'hidden',
+      overflowY: 'auto',
       paddingTop: 'env(safe-area-inset-top)',
       paddingBottom: 'env(safe-area-inset-bottom)',
       boxSizing: 'border-box',
@@ -174,14 +198,14 @@ return (
       </div>
 
       {/* Card */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
+      <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
         <AnimatePresence mode="wait">
           <FilmeCard key={filme.id} filme={filme} onVotar={votar} x={x} />
         </AnimatePresence>
       </div>
 
       {/* Botões */}
-      <div style={{ padding: '16px 20px 32px', display: 'flex', justifyContent: 'center', gap: 32, flexShrink: 0 }}>
+      <div style={{ padding: '16px 20px max(24px, env(safe-area-inset-bottom))', display: 'flex', justifyContent: 'center', gap: 32, flexShrink: 0 }}>
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => votar('dislike')} style={{
           width: 64, height: 64, borderRadius: '50%', border: '2px solid #F87171',
           background: '#F8717122', cursor: 'pointer',

@@ -9,7 +9,7 @@ import Button from './components/Button'
 
 const STREAMINGS = [
   { id: 8,    nome: 'NETFLIX'   },
-  { id: 9,    nome: 'PRIME'     },
+  { id: 119,  nome: 'PRIME'     },
   { id: 337,  nome: 'DISNEY+'   },
   { id: 1899, nome: 'MAX'       },
   { id: 350,  nome: 'APPLE TV'  },
@@ -84,14 +84,14 @@ export default function Home() {
     <div
       style={{
         width: '100%',
-        height: '100dvh',
         minHeight: '100dvh',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px 20px',
+        padding: 'max(16px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom))',
         boxSizing: 'border-box',
       }}>
 

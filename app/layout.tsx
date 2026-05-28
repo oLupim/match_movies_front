@@ -21,8 +21,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -33,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={poppins.variable}>
-      <body className="font-poppins bg-[#0f0f1a] overflow-hidden">
+      <body className="font-poppins bg-[#0f0f1a]">
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -51,11 +49,11 @@ export default function RootLayout({
         />
         <div
           style={{
-            height: "100vh",
-            // @ts-ignore
-            height: "calc(var(--vh, 1vh) * 100)",
+            minHeight: "100vh",
+            // @ts-expect-error CSS custom property fallback is valid here.
+            minHeight: "calc(var(--vh, 1vh) * 100)",
             width: "100%",
-            overflow: "hidden",
+            overflowX: "hidden",
             display: "flex",
             flexDirection: "column",
             background: 'radial-gradient(ellipse at 50% 30%, #2D1B69 0%, #1A0F3C 40%, #0D0D1A 75%)'

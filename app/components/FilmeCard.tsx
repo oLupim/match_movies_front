@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
+import { getNomeStreaming, type StreamingValue } from '../utils/streaming'
 
 type Filme = {
   id: number
@@ -13,7 +14,7 @@ type Filme = {
   vote_average: number
   release_date: string
   generos?: string[]
-  streaming?: string
+  streaming?: StreamingValue
 }
 
 type Props = {
@@ -25,21 +26,6 @@ type Props = {
 const POSTER_BASE = 'https://image.tmdb.org/t/p/w500'
 const POSTER_PLACEHOLDER = 'https://via.placeholder.com/500x750/1E1E2E/A855F7?text=Sem+Poster'
 
-const STREAMINGS: Record<number, string> = {
-  8:    'NETFLIX',
-  9:    'PRIME',
-  337:  'DISNEY+',
-  1899: 'MAX',
-  350:  'APPLE TV',
-  307:  'GLOBOPLAY',
-  531:  'PARAMOUNT',
-}
-
-function getNomeStreaming(streaming: string | number) {
-  const id = Number(streaming)
-  return STREAMINGS[id] || streaming
-}
-
 function getPoster(filme: Filme) {
   if (!filme.poster_path) return POSTER_PLACEHOLDER
   if (filme.poster_path.startsWith('http')) return filme.poster_path
@@ -48,6 +34,7 @@ function getPoster(filme: Filme) {
 
 export default function FilmeCard({ filme, onVotar, x }: Props) {
   const [sinopseAberta, setSinopseAberta] = useState(false)
+  const streamingNome = getNomeStreaming(filme.streaming)
 
   const rotate = useTransform(x, [-200, 200], [-25, 25])
   const likeOpacity = useTransform(x, [20, 100], [0, 1])
@@ -82,7 +69,7 @@ export default function FilmeCard({ filme, onVotar, x }: Props) {
       whileTap={{ cursor: 'grabbing' }}
     >
       {/* Poster */}
-      <div style={{ position: 'relative', height: 520 }}>
+      <div style={{ position: 'relative', height: 'clamp(260px, 56dvh, 520px)' }}>
         <img
           src={getPoster(filme)}
           alt={filme.title}
@@ -137,10 +124,10 @@ export default function FilmeCard({ filme, onVotar, x }: Props) {
               }}>{g}</span>
             ))}
           </div>
-          {filme.streaming && (
+          {streamingNome && (
             <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF',
               background: '#2D2D44', padding: '3px 8px', borderRadius: 999, flexShrink: 0 }}>
-              {getNomeStreaming(filme.streaming)}
+              {streamingNome}
             </span>
           )}
         </div>
