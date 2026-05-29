@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import React from 'react'
 import { buscarSala } from '../../services/api'
-import { conectar, desconectar, emitirIniciarSala, iniciarDispatcher, ouvirParticipantes, ouvirSalaAtual, ouvirSalaIniciada, removerListeners } from '../../services/socket'
+import { conectar, desconectar, emitirApelido, emitirIniciarSala, iniciarDispatcher, ouvirJogadorAtualizado, ouvirParticipantes, ouvirSalaAtual, ouvirSalaIniciada, removerListeners } from '../../services/socket'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PlayerList from '../../components/PlayerList'
 import SalaCode from '../../components/SalaCode'
@@ -15,6 +15,8 @@ type Player = {
   id: string
   apelido?: string
 }
+
+type PlayerPayload = Player | string
 
 type Sala = {
   id: string
@@ -30,6 +32,28 @@ function getUserIdSessao() {
   return novoUserId
 }
 
+function normalizarPlayers(players: PlayerPayload[]) {
+  return players
+    .map(player => (
+      typeof player === 'string'
+        ? { id: player }
+        : player
+    ))
+    .filter(player => Boolean(player.id))
+}
+
+function atualizarPlayer(players: PlayerPayload[], playerAtualizado: Player) {
+  const playersNormalizados = normalizarPlayers(players)
+  const jaExiste = playersNormalizados.some(p => p.id === playerAtualizado.id)
+  if (!jaExiste) return [...playersNormalizados, playerAtualizado]
+
+  return playersNormalizados.map(player => (
+    player.id === playerAtualizado.id
+      ? { ...player, apelido: playerAtualizado.apelido || player.apelido }
+      : player
+  ))
+}
+
 export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { id } = React.use(params)
@@ -39,28 +63,28 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
   const [players, setPlayers] = useState<Player[]>([])
   const [carregando, setCarregando] = useState(true)
   const [isDono, setIsDono] = useState(false)
-  const [apelido, setApelido] = useState('')
   const [apelidoInput, setApelidoInput] = useState('')
+  const [userId, setUserId] = useState('')
+  const apelidoRef = useRef('Jogador')
 
   useEffect(() => {
     setIsDono(sessionStorage.getItem('donoDaSala') === salaId)
 
     const apelidoSalvo = sessionStorage.getItem('apelido') || ''
     const apelidoInicial = apelidoSalvo.trim() || 'Jogador'
-    setApelido(apelidoInicial)
+    apelidoRef.current = apelidoInicial
     setApelidoInput(apelidoInicial)
+    setUserId(getUserIdSessao())
   }, [salaId])
 
   useEffect(() => {
-    if (!apelido) return
+    if (!userId) return
 
-    const userId = getUserIdSessao()
-
-    conectar(salaId, userId, apelido)
+    conectar(salaId, userId, apelidoRef.current)
     iniciarDispatcher()
 
-    ouvirSalaAtual((data: { userId: string, total: number, jogadores: Player[] }) => {
-      setPlayers(data.jogadores)
+    ouvirSalaAtual((data: { userId: string, total: number, jogadores: PlayerPayload[] }) => {
+      setPlayers(normalizarPlayers(data.jogadores))
     })
 
     ouvirParticipantes((data: { userId: string, apelido?: string, status?: string }) => {
@@ -69,13 +93,12 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
           return prev.filter(p => p.id !== data.userId)
         }
 
-        const player = { id: data.userId, apelido: data.apelido }
-        const jaExiste = prev.some(p => p.id === data.userId)
-        if (jaExiste) {
-          return prev.map(p => p.id === data.userId ? { ...p, apelido: data.apelido || p.apelido } : p)
-        }
-        return [...prev, player]
+        return atualizarPlayer(prev, { id: data.userId, apelido: data.apelido })
       })
+    })
+
+    ouvirJogadorAtualizado((data: { userId: string, apelido?: string }) => {
+      setPlayers(prev => atualizarPlayer(prev, { id: data.userId, apelido: data.apelido }))
     })
 
     ouvirSalaIniciada(() => {
@@ -86,7 +109,7 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
       removerListeners()
       desconectar()
     }
-  }, [salaId, apelido, router])
+  }, [salaId, userId, router])
 
   useEffect(() => {
     async function carregar() {
@@ -105,8 +128,12 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
   function salvarApelido() {
     const novoApelido = apelidoInput.trim() || 'Jogador'
     sessionStorage.setItem('apelido', novoApelido)
+    apelidoRef.current = novoApelido
     setApelidoInput(novoApelido)
-    setApelido(novoApelido)
+    if (userId) {
+      setPlayers(prev => atualizarPlayer(prev, { id: userId, apelido: novoApelido }))
+    }
+    emitirApelido(novoApelido)
   }
 
   if (carregando) return <LoadingSpinner texto="Carregando sala..." />
@@ -134,7 +161,7 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
         <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}>
           Seu apelido
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input
             value={apelidoInput}
             onChange={e => setApelidoInput(e.target.value)}
@@ -148,12 +175,13 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
               fontFamily: 'Poppins, sans-serif',
             }}
           />
-          <button onClick={salvarApelido} style={{
-            padding: '12px 14px', borderRadius: 12, border: '1px solid #7C3AED',
+          <button type="button" onClick={salvarApelido} style={{
+            width: '100%', minHeight: 44, padding: '12px 14px', borderRadius: 12, border: '1px solid #7C3AED',
             background: '#7C3AED22', color: '#C4B5FD', fontWeight: 700,
-            fontSize: 13, cursor: 'pointer', fontFamily: 'Poppins, sans-serif'
+            fontSize: 13, cursor: 'pointer', fontFamily: 'Poppins, sans-serif',
+            touchAction: 'manipulation'
           }}>
-            Salvar
+            Salvar apelido
           </button>
         </div>
       </div>

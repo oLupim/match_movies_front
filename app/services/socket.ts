@@ -3,6 +3,29 @@ const WS_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
   .replace('https://', 'wss://')
 
 let ws: WebSocket | null = null
+const pendingMessages: string[] = []
+
+function enviarMensagem(mensagem: object) {
+  const texto = JSON.stringify(mensagem)
+
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(texto)
+    return
+  }
+
+  if (ws?.readyState === WebSocket.CONNECTING) {
+    pendingMessages.push(texto)
+  }
+}
+
+function enviarPendentes() {
+  if (ws?.readyState !== WebSocket.OPEN) return
+
+  while (pendingMessages.length > 0) {
+    const mensagem = pendingMessages.shift()
+    if (mensagem) ws.send(mensagem)
+  }
+}
 
 // ── CONECTAR ──
 export function conectar(salaId: string, userId: string, apelido?: string): WebSocket {
@@ -12,6 +35,7 @@ export function conectar(salaId: string, userId: string, apelido?: string): WebS
   if (apelido?.trim()) params.set('apelido', apelido.trim())
 
   ws = new WebSocket(`${WS_URL}/ws/sala/${salaId}?${params.toString()}`)
+  ws.onopen = enviarPendentes
  
 
 
@@ -29,11 +53,17 @@ export function desconectar() {
 
 // ── EMITIR VOTO ──
 export function emitirVoto(filmeId: number, voto: 'like' | 'dislike') {
-  if (ws?.readyState !== WebSocket.OPEN) return
-  ws.send(JSON.stringify({
+  enviarMensagem({
     tipo: 'voto',
     payload: { filmeId, voto }
-  }))
+  })
+}
+
+export function emitirApelido(apelido: string) {
+  enviarMensagem({
+    tipo: 'apelido',
+    payload: { apelido }
+  })
 }
 
 // ── OUVIR EVENTOS ──
@@ -43,6 +73,10 @@ const listeners: Record<string, Callback> = {}
 export function ouvirParticipantes<T = unknown>(callback: Callback<T>) {
   listeners['jogador_entrou'] = callback as Callback<unknown>
   listeners['jogador_saiu'] = callback as Callback<unknown>
+}
+
+export function ouvirJogadorAtualizado<T = unknown>(callback: Callback<T>) {
+  listeners['jogador_atualizado'] = callback as Callback<unknown>
 }
 
 export function ouvirMatch<T = unknown>(callback: Callback<T>) {
@@ -84,6 +118,5 @@ export function ouvirSalaIniciada<T = unknown>(callback: Callback<T>) {
 }
 
 export function emitirIniciarSala() {
-  if (ws?.readyState !== WebSocket.OPEN) return
-  ws.send(JSON.stringify({ tipo: 'iniciar_sala', payload: {} }))
+  enviarMensagem({ tipo: 'iniciar_sala', payload: {} })
 }
