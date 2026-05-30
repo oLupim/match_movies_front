@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import React from 'react'
-import { buscarSala } from '../../services/api'
+import { atualizarApelidoSala, buscarSala } from '../../services/api'
 import { conectar, desconectar, emitirApelido, emitirIniciarSala, iniciarDispatcher, ouvirJogadorAtualizado, ouvirParticipantes, ouvirSalaAtual, ouvirSalaIniciada, removerListeners } from '../../services/socket'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PlayerList from '../../components/PlayerList'
@@ -21,6 +21,8 @@ type PlayerPayload = Player | string
 type Sala = {
   id: string
   status: string
+  participantes?: PlayerPayload[]
+  jogadores?: PlayerPayload[]
 }
 
 function getUserIdSessao() {
@@ -54,6 +56,10 @@ function atualizarPlayer(players: PlayerPayload[], playerAtualizado: Player) {
   ))
 }
 
+function obterPlayersDaSala(sala: Sala) {
+  return sala.participantes || sala.jogadores || []
+}
+
 export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { id } = React.use(params)
@@ -84,7 +90,7 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
     iniciarDispatcher()
 
     ouvirSalaAtual((data: { userId: string, total: number, jogadores: PlayerPayload[] }) => {
-      setPlayers(normalizarPlayers(data.jogadores))
+      setPlayers(normalizarPlayers(data.jogadores || []))
     })
 
     ouvirParticipantes((data: { userId: string, apelido?: string, status?: string }) => {
@@ -116,6 +122,10 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
       try {
         const dados = await buscarSala(salaId)
         setSala(dados)
+        const playersDaSala = obterPlayersDaSala(dados)
+        if (playersDaSala.length > 0) {
+          setPlayers(normalizarPlayers(playersDaSala))
+        }
       } catch {
         setSala({ id: salaId, status: 'lobby' })
       } finally {
@@ -124,6 +134,32 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
     }
     carregar()
   }, [salaId])
+
+  useEffect(() => {
+    if (!userId) return
+
+    let ativo = true
+
+    async function atualizarParticipantes() {
+      try {
+        const dados = await buscarSala(salaId)
+        const playersDaSala = obterPlayersDaSala(dados)
+
+        if (ativo && playersDaSala.length > 0) {
+          setPlayers(normalizarPlayers(playersDaSala))
+        }
+      } catch {
+      }
+    }
+
+    atualizarParticipantes()
+    const intervalo = window.setInterval(atualizarParticipantes, 3000)
+
+    return () => {
+      ativo = false
+      window.clearInterval(intervalo)
+    }
+  }, [salaId, userId])
 
   function salvarApelido() {
     const novoApelido = apelidoInput.trim() || 'Jogador'
@@ -134,6 +170,9 @@ export default function Lobby({ params }: { params: Promise<{ id: string }> }) {
       setPlayers(prev => atualizarPlayer(prev, { id: userId, apelido: novoApelido }))
     }
     emitirApelido(novoApelido)
+    if (userId) {
+      atualizarApelidoSala(salaId, userId, novoApelido).catch(() => {})
+    }
   }
 
   if (carregando) return <LoadingSpinner texto="Carregando sala..." />

@@ -35,6 +35,11 @@ export default function MatchPopup({ match, onContinuar }: Props) {
   const streamingNome = match ? getNomeStreaming(match.streaming) : null
   const streamingLink = match ? getLinkStreaming(match.streaming, match.title, match.watch_url) : null
 
+  function abrirStreaming() {
+    if (!streamingLink) return
+    window.location.href = streamingLink.url
+  }
+
   return (
     <AnimatePresence>
       {match && (
@@ -89,7 +94,7 @@ export default function MatchPopup({ match, onContinuar }: Props) {
               <p style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, margin: '0 0 20px' }}>{match.overview}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {streamingLink && (
-                  <a href={streamingLink.url} target="_blank" rel="noopener noreferrer" style={{
+                  <button type="button" onClick={abrirStreaming} style={{
                     width: '100%', padding: '14px', borderRadius: 14, border: 'none',
                     background: 'linear-gradient(135deg, #E11D48, #F97316)',
                     color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
@@ -98,9 +103,9 @@ export default function MatchPopup({ match, onContinuar }: Props) {
                     gap: 8, boxSizing: 'border-box'
                   }}>
                     <Play size={16} fill="currentColor" />
-                    <span>{streamingLink.direto ? 'Ir para o streaming' : `Abrir no ${streamingLink.nome}`}</span>
+                    <span>{streamingLink.direto ? 'Ir para o streaming' : `Abrir no app/site ${streamingLink.nome}`}</span>
                     <ExternalLink size={15} />
-                  </a>
+                  </button>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <button onClick={() => router.push('/')} style={{
