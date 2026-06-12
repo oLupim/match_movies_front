@@ -1,11 +1,27 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
+export type FiltrosSala = {
+  generos: number[]
+  streamings: number[]
+  anoInicio?: number
+  anoFim?: number
+  notaMinima?: number
+  diretor?: string
+}
+
+export type DiretorResultado = {
+  id: number
+  nome: string
+  departamento?: string
+  foto?: string
+}
+
 // ── CRIAR SALA ──
-export async function criarSala(generos: number[], streamings: number[]) {
+export async function criarSala(filtros: FiltrosSala) {
   const res = await fetch(`${API_URL}/sala`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ generos, streamings })
+    body: JSON.stringify(filtros)
   })
 
   if (!res.ok) throw new Error('Erro ao criar sala')
@@ -25,6 +41,15 @@ export async function buscarSala(salaId: string) {
 }
 
 // ── ENTRAR NA SALA ──
+export async function buscarDiretores(query: string) {
+  const res = await fetch(`${API_URL}/diretores?q=${encodeURIComponent(query)}`)
+
+  if (!res.ok) throw new Error('Erro ao buscar diretores')
+
+  const data = await res.json()
+  return data as DiretorResultado[]
+}
+
 export async function entrarSala(salaId: string) {
   const res = await fetch(`${API_URL}/sala/${salaId}/entrar`, {
     method: 'POST',

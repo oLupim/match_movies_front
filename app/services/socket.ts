@@ -22,7 +22,7 @@ export function conectar(salaId: string): Socket {
     console.log('❌ Socket desconectado')
   })
 
-  socket.on('connect_error', (err) => {
+  socket.on('connect_error', (err: Error) => {
     console.error('Erro de conexão:', err.message)
   })
 
@@ -41,11 +41,11 @@ export function emitirVoto(filmeId: number, voto: 'like' | 'dislike') {
 }
 
 // ── OUVIR EVENTOS ──
-export function ouvirParticipantes(callback: (participantes: any[]) => void) {
+export function ouvirParticipantes(callback: (participantes: unknown[]) => void) {
   socket?.on('participantes', callback)
 }
 
-export function ouvirNovoCard(callback: (filme: any) => void) {
+export function ouvirNovoCard(callback: (filme: unknown) => void) {
   socket?.on('novo_card', callback)
 }
 
@@ -53,7 +53,7 @@ export function ouvirStatusVoto(callback: (data: { votaram: number, total: numbe
   socket?.on('status_voto', callback)
 }
 
-export function ouvirMatch(callback: (filme: any) => void) {
+export function ouvirMatch(callback: (filme: unknown) => void) {
   socket?.on('match', callback)
 }
 
