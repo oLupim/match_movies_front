@@ -1,76 +1,113 @@
-import { io, Socket } from 'socket.io-client'
+const WS_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
+  .replace('http://', 'ws://')
+  .replace('https://', 'wss://')
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+let ws: WebSocket | null = null
+const pendingMessages: string[] = []
 
-let socket: Socket | null = null
+type Callback<T = unknown> = (data: T) => void
+const listeners: Record<string, Callback> = {}
 
-// ── CONECTAR ──
-export function conectar(salaId: string): Socket {
-  if (socket?.connected) return socket
+function enviarMensagem(mensagem: object) {
+  const texto = JSON.stringify(mensagem)
 
-  socket = io(SOCKET_URL, {
-    query: { salaId },
-    transports: ['websocket'],
-    autoConnect: true,
-  })
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(texto)
+    return
+  }
 
-  socket.on('connect', () => {
-    console.log('✅ Socket conectado:', socket?.id)
-  })
-
-  socket.on('disconnect', () => {
-    console.log('❌ Socket desconectado')
-  })
-
-  socket.on('connect_error', (err: Error) => {
-    console.error('Erro de conexão:', err.message)
-  })
-
-  return socket
+  if (ws?.readyState === WebSocket.CONNECTING) {
+    pendingMessages.push(texto)
+  }
 }
 
-// ── DESCONECTAR ──
+function enviarPendentes() {
+  if (ws?.readyState !== WebSocket.OPEN) return
+
+  while (pendingMessages.length > 0) {
+    const mensagem = pendingMessages.shift()
+    if (mensagem) ws.send(mensagem)
+  }
+}
+
+export function conectar(salaId: string, userId: string, apelido?: string): WebSocket {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return ws
+  }
+
+  const params = new URLSearchParams({ userId })
+  if (apelido?.trim()) params.set('apelido', apelido.trim())
+
+  ws = new WebSocket(`${WS_URL}/ws/sala/${salaId}?${params.toString()}`)
+  ws.onopen = enviarPendentes
+  return ws
+}
+
 export function desconectar() {
-  socket?.disconnect()
-  socket = null
+  ws?.close()
+  ws = null
 }
 
-// ── EMITIR VOTO ──
 export function emitirVoto(filmeId: number, voto: 'like' | 'dislike') {
-  socket?.emit('votar', { filmeId, voto })
+  enviarMensagem({
+    tipo: 'voto',
+    payload: { filmeId, voto }
+  })
 }
 
-// ── OUVIR EVENTOS ──
-export function ouvirParticipantes(callback: (participantes: unknown[]) => void) {
-  socket?.on('participantes', callback)
+export function emitirApelido(apelido: string) {
+  enviarMensagem({
+    tipo: 'apelido',
+    payload: { apelido }
+  })
 }
 
-export function ouvirNovoCard(callback: (filme: unknown) => void) {
-  socket?.on('novo_card', callback)
+export function emitirIniciarSala() {
+  enviarMensagem({ tipo: 'iniciar_sala', payload: {} })
 }
 
-export function ouvirStatusVoto(callback: (data: { votaram: number, total: number }) => void) {
-  socket?.on('status_voto', callback)
+export function ouvirParticipantes<T = unknown>(callback: Callback<T>) {
+  listeners['jogador_entrou'] = callback as Callback<unknown>
+  listeners['jogador_saiu'] = callback as Callback<unknown>
 }
 
-export function ouvirMatch(callback: (filme: unknown) => void) {
-  socket?.on('match', callback)
+export function ouvirJogadorAtualizado<T = unknown>(callback: Callback<T>) {
+  listeners['jogador_atualizado'] = callback as Callback<unknown>
 }
 
-export function ouvirCarregando(callback: () => void) {
-  socket?.on('carregando', callback)
+export function ouvirMatch<T = unknown>(callback: Callback<T>) {
+  listeners['match'] = callback as Callback<unknown>
 }
 
-export function ouvirSemMatch(callback: () => void) {
-  socket?.on('sem_match', callback)
+export function ouvirVotoRegistrado<T = unknown>(callback: Callback<T>) {
+  listeners['voto_registrado'] = callback as Callback<unknown>
 }
 
-// ── REMOVER LISTENERS (importante para evitar duplicatas) ──
+export function ouvirSalaAtual<T = unknown>(callback: Callback<T>) {
+  listeners['sala_atual'] = callback as Callback<unknown>
+}
+
+export function ouvirSalaIniciada<T = unknown>(callback: Callback<T>) {
+  listeners['sala_iniciada'] = callback as Callback<unknown>
+}
+
+export function iniciarDispatcher() {
+  if (!ws) return
+
+  ws.onmessage = event => {
+    try {
+      const msg = JSON.parse(event.data) as { tipo?: string; payload?: unknown }
+      if (!msg.tipo) return
+
+      const callback = listeners[msg.tipo]
+      if (callback) callback(msg.payload)
+    } catch {
+      console.error('Erro ao interpretar mensagem WebSocket')
+    }
+  }
+}
+
 export function removerListeners() {
-  socket?.off('participantes')
-  socket?.off('novo_card')
-  socket?.off('status_voto')
-  socket?.off('match')
-  socket?.off('carregando')
-  socket?.off('sem_match')
+  Object.keys(listeners).forEach(tipo => delete listeners[tipo])
+  if (ws) ws.onmessage = null
 }

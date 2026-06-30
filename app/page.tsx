@@ -8,7 +8,7 @@ import { buscarDiretores, criarSala as criarSalaAPI, type DiretorResultado } fro
 
 const STREAMINGS = [
   { id: 8, nome: 'NETFLIX' },
-  { id: 9, nome: 'PRIME' },
+  { id: 119, nome: 'PRIME' },
   { id: 337, nome: 'DISNEY+' },
   { id: 1899, nome: 'MAX' },
   { id: 350, nome: 'APPLE TV' },
@@ -31,10 +31,37 @@ const GENEROS = [
 
 const NOTAS = [0, 6, 7, 8, 9]
 
+const DIRETORES_FALLBACK = [
+  'Christopher Nolan',
+  'Steven Spielberg',
+  'Martin Scorsese',
+  'Quentin Tarantino',
+  'Greta Gerwig',
+  'Denis Villeneuve',
+  'Sofia Coppola',
+  'Jordan Peele',
+  'Bong Joon-ho',
+  'Guillermo del Toro',
+  'James Cameron',
+  'Ridley Scott',
+  'David Fincher',
+  'Wes Anderson',
+  'Hayao Miyazaki',
+]
+
 function toggle(lista: number[], item: number) {
   return lista.includes(item)
     ? lista.filter(i => i !== item)
     : [...lista, item]
+}
+
+function filtrarDiretoresLocais(query: string): DiretorResultado[] {
+  const termo = query.trim().toLocaleLowerCase('pt-BR')
+
+  return DIRETORES_FALLBACK
+    .filter(nome => nome.toLocaleLowerCase('pt-BR').includes(termo))
+    .slice(0, 6)
+    .map((nome, index) => ({ id: -(index + 1), nome }))
 }
 
 const labelStyle = {
@@ -74,6 +101,7 @@ export default function Home() {
   const [sugestoesDiretores, setSugestoesDiretores] = useState<DiretorResultado[]>([])
   const [buscandoDiretores, setBuscandoDiretores] = useState(false)
   const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
     const busca = diretor.trim()
@@ -89,9 +117,9 @@ export default function Home() {
     const timeout = window.setTimeout(async () => {
       try {
         const resultados = await buscarDiretores(busca)
-        if (ativo) setSugestoesDiretores(resultados)
+        if (ativo) setSugestoesDiretores(resultados.length > 0 ? resultados : filtrarDiretoresLocais(busca))
       } catch {
-        if (ativo) setSugestoesDiretores([])
+        if (ativo) setSugestoesDiretores(filtrarDiretoresLocais(busca))
       } finally {
         if (ativo) setBuscandoDiretores(false)
       }
@@ -117,6 +145,7 @@ export default function Home() {
     }
 
     setErro('')
+    setCarregando(true)
     try {
       const { salaId } = await criarSalaAPI({
         generos: generosSelecionados,
@@ -126,9 +155,12 @@ export default function Home() {
         notaMinima: mostrarFiltros ? notaMinima || undefined : undefined,
         diretor: mostrarFiltros ? diretor.trim() || undefined : undefined,
       })
-      router.push(`/sala/${salaId}/party`)
+      sessionStorage.setItem('donoDaSala', salaId)
+      router.push(`/sala/${salaId}`)
     } catch {
       setErro('Erro ao criar sala. Tente novamente.')
+    } finally {
+      setCarregando(false)
     }
   }
 
@@ -366,13 +398,14 @@ export default function Home() {
                 <p style={{ color: '#F87171', fontSize: 12, textAlign: 'center' }}>{erro}</p>
               )}
 
-              <button onClick={() => criarSala(generos, streamings)} style={{
+              <button disabled={carregando} onClick={() => criarSala(generos, streamings)} style={{
                 width: '100%', padding: '16px', borderRadius: 16, border: 'none',
                 background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
+                color: '#fff', fontWeight: 700, fontSize: 16, cursor: carregando ? 'wait' : 'pointer',
+                opacity: carregando ? 0.7 : 1,
                 fontFamily: 'Poppins, sans-serif'
               }}>
-                Criar Sala
+                {carregando ? 'Criando...' : 'Criar Sala'}
               </button>
             </motion.div>
           )}
