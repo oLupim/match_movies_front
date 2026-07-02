@@ -2,17 +2,37 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 
 // ── CRIAR SALA ──
-export async function criarSala(generos: number[], streamings: number[]) {
+export type FiltrosAdicionais = {
+  anoInicio?: number
+  anoFim?: number
+  notaMinima?: number
+  diretor?: string
+}
+
+export async function criarSala(
+  generos: number[],
+  streamings: number[],
+  filtros: FiltrosAdicionais = {}
+) {
   const res = await fetch(`${API_URL}/sala`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ generos, streamings })
+    body: JSON.stringify({ generos, streamings, ...filtros })
   })
 
   if (!res.ok) throw new Error('Erro ao criar sala')
 
   const data = await res.json()
   return data as { salaId: string }
+}
+
+export async function buscarDiretores(termo: string) {
+  if (termo.trim().length < 2) return []
+
+  const res = await fetch(`${API_URL}/diretores?q=${encodeURIComponent(termo.trim())}`)
+  if (!res.ok) throw new Error('Erro ao buscar diretores')
+
+  return await res.json() as string[]
 }
 
 // ── BUSCAR DADOS DA SALA ──
