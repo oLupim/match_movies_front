@@ -22,27 +22,6 @@ type Filme = {
   watch_url?: string
 }
 
-const FILMES_MOCK: Filme[] = [
-  {
-    id: 1, title: 'Inception',
-    overview: 'Um ladrão especializado em roubar segredos do subconsciente recebe a missão inversa: plantar uma ideia.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-    vote_average: 8.8, release_date: '2010', generos: ['Sci-Fi', 'Action'], streaming: 'Netflix'
-  },
-  {
-    id: 2, title: 'The Dark Knight',
-    overview: 'Batman enfrenta o Coringa, um criminoso que semeia o caos em Gotham City.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-    vote_average: 9.0, release_date: '2008', generos: ['Action', 'Drama'], streaming: 'Max'
-  },
-  {
-    id: 3, title: 'Interstellar',
-    overview: 'Um grupo de astronautas viaja através de um buraco de minhoca em busca de um novo lar.',
-    poster_path: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    vote_average: 8.6, release_date: '2014', generos: ['Sci-Fi', 'Drama'], streaming: 'Prime'
-  },
-]
-
 function getUserIdSessao() {
   const userIdSalvo = window.sessionStorage.getItem('userId')
   if (userIdSalvo) return userIdSalvo
@@ -66,6 +45,7 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
   const [, setJogadoresVotaram] = useState(0)
   const [, setTotalJogadores] = useState(0)
   const [carregando, setCarregando] = useState(true)
+  const [erroCarregamento, setErroCarregamento] = useState('')
   const userIdRef = useRef('')
   const x = useMotionValue(0)
 
@@ -86,13 +66,11 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
         ])
         const streamingsDaSala = salaDados.filtros?.streamings || []
         setStreamingsSelecionados(streamingsDaSala)
-        setFilmes(filmesDados.length > 0
-          ? embaralhar(filmesDados.map((f: Filme) => normalizarFilme(f, streamingsDaSala)))
-          : FILMES_MOCK)
+        setFilmes(embaralhar(filmesDados.map((f: Filme) => normalizarFilme(f, streamingsDaSala))))
         setTotalJogadores(salaDados.totalJogadores || salaDados.jogadores?.length || 0)
       } catch {
-        console.warn('Backend indisponível, usando mock')
-        setFilmes(FILMES_MOCK)
+        setErroCarregamento('Não foi possível carregar os filmes. Tente novamente em instantes.')
+        setFilmes([])
       } finally {
         setCarregando(false)
       }
@@ -167,7 +145,9 @@ export default function Party({ params }: { params: Promise<{ id: string }> }) {
 
   if (!filme) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#9CA3AF' }}>Nenhum filme encontrado.</p>
+      <p style={{ color: erroCarregamento ? '#F87171' : '#9CA3AF', textAlign: 'center', padding: 24 }}>
+        {erroCarregamento || 'Nenhum filme encontrado com esses filtros.'}
+      </p>
     </div>
   )
 
