@@ -33,7 +33,7 @@ function getPoster(filme: Filme) {
 export default function MatchPopup({ match, onContinuar }: Props) {
   const router = useRouter()
   const streamingNome = match ? getNomeStreaming(match.streaming) : null
-  const streamingLink = match ? getLinkStreaming(match.streaming, match.title, match.watch_url) : null
+  const streamingLink = match ? getLinkStreaming(match.id) : null
 
   function abrirStreaming() {
     if (!streamingLink) return
@@ -103,7 +103,7 @@ export default function MatchPopup({ match, onContinuar }: Props) {
                     gap: 8, boxSizing: 'border-box'
                   }}>
                     <Play size={16} fill="currentColor" />
-                    <span>{streamingLink.direto ? 'Ir para o streaming' : `Abrir no app/site ${streamingLink.nome}`}</span>
+                    <span>Ver onde assistir</span>
                     <ExternalLink size={15} />
                   </button>
                 )}
