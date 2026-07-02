@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Tv2, Play, Hash } from 'lucide-react'
-import { criarSala as criarSalaAPI } from './services/api'
+import { Tv2, Play, Hash, Star } from 'lucide-react'
+import { buscarDiretores, criarSala as criarSalaAPI } from './services/api'
 import Button from './components/Button'
 
 const STREAMINGS = [
@@ -55,16 +56,54 @@ export default function Home() {
   const [codigo, setCodigo] = useState('')
   const [streamings, setStreamings] = useState<number[]>([])
   const [generos, setGeneros] = useState<number[]>([])
+  const [maisFiltros, setMaisFiltros] = useState(false)
+  const [anoInicio, setAnoInicio] = useState('')
+  const [anoFim, setAnoFim] = useState('')
+  const [notaMinima, setNotaMinima] = useState(0)
+  const [diretor, setDiretor] = useState('')
+  const [sugestoesDiretores, setSugestoesDiretores] = useState<string[]>([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+
+  useEffect(() => {
+    const termo = diretor.trim()
+    if (termo.length < 2) {
+      setSugestoesDiretores([])
+      return
+    }
+    let cancelado = false
+    const timer = window.setTimeout(async () => {
+      try {
+        const resultados = await buscarDiretores(termo)
+        if (!cancelado) {
+          const selecionado = resultados.some(nome => nome.toLocaleLowerCase() === termo.toLocaleLowerCase())
+          setSugestoesDiretores(selecionado ? [] : resultados)
+        }
+      } catch {
+        if (!cancelado) setSugestoesDiretores([])
+      }
+    }, 300)
+    return () => {
+      cancelado = true
+      window.clearTimeout(timer)
+    }
+  }, [diretor])
 
   async function criarSala(generos: number[], streamings: number[]) {
     if (streamings.length === 0) return setErro('Selecione pelo menos um streaming')
     if (generos.length === 0) return setErro('Selecione pelo menos um gênero')
+    if (anoInicio && anoFim && Number(anoInicio) > Number(anoFim)) {
+      return setErro('O ano inicial não pode ser maior que o ano final')
+    }
     setErro('')
     setCarregando(true)
     try {
-      const { salaId } = await criarSalaAPI(generos, streamings)
+      const { salaId } = await criarSalaAPI(generos, streamings, {
+        ...(anoInicio && { anoInicio: Number(anoInicio) }),
+        ...(anoFim && { anoFim: Number(anoFim) }),
+        ...(notaMinima > 0 && { notaMinima }),
+        ...(diretor.trim() && { diretor: diretor.trim() }),
+      })
       sessionStorage.setItem('donoDaSala', salaId) 
       router.push(`/sala/${salaId}`)
     } catch (error) {
@@ -192,6 +231,86 @@ export default function Home() {
                 </div>
               </div>
 
+              <div>
+                <span role="button" tabIndex={0} aria-expanded={maisFiltros}
+                  onClick={() => setMaisFiltros(aberto => !aberto)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setMaisFiltros(aberto => !aberto) }}
+                  style={{
+                    color: '#A855F7', fontSize: 13, textDecoration: 'underline',
+                    textUnderlineOffset: 3, cursor: 'pointer', display: 'block',
+                    width: 'fit-content', margin: '0 auto'
+                  }}>
+                  {maisFiltros ? 'Ocultar filtros adicionais' : 'Adicionar mais filtros'}
+                </span>
+
+                <AnimatePresence initial={false}>
+                  {maisFiltros && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+                      <div>
+                        <p style={filterLabelStyle}>Ano de lançamento</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <input type="number" min="1888" max="2100" placeholder="Ano inicial"
+                            value={anoInicio} onChange={e => setAnoInicio(e.target.value)} style={inputStyle} />
+                          <input type="number" min="1888" max="2100" placeholder="Ano final"
+                            value={anoFim} onChange={e => setAnoFim(e.target.value)} style={inputStyle} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <p style={filterLabelStyle}>Avaliação</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7 }}>
+                          {[
+                            { valor: 0, destaque: 'Todas' },
+                            { valor: 6, destaque: '6+' },
+                            { valor: 7, destaque: '7+' },
+                            { valor: 8, destaque: '8+' },
+                          ].map(opcao => (
+                            <button key={opcao.valor} type="button" onClick={() => setNotaMinima(opcao.valor)}
+                              aria-pressed={notaMinima === opcao.valor} style={{
+                                minHeight: 48, padding: '6px 4px', borderRadius: 10, cursor: 'pointer',
+                                fontFamily: 'Poppins, sans-serif', display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center', gap: 2,
+                                background: notaMinima === opcao.valor
+                                  ? 'linear-gradient(145deg, rgba(124,58,237,.3), rgba(168,85,247,.12))'
+                                  : '#1E1E2E',
+                                border: `1px solid ${notaMinima === opcao.valor ? '#A855F7' : '#2D2D44'}`,
+                                color: notaMinima === opcao.valor ? '#E9D5FF' : '#9CA3AF',
+                                boxShadow: notaMinima === opcao.valor ? '0 0 16px rgba(168,85,247,.14)' : 'none',
+                                transition: 'all .2s ease'
+                              }}>
+                              <Star size={11} fill={notaMinima === opcao.valor ? '#A855F7' : 'transparent'}
+                                color={notaMinima === opcao.valor ? '#C084FC' : '#6B7280'} />
+                              <strong style={{ fontSize: opcao.valor === 0 ? 10 : 14, lineHeight: 1.1 }}>
+                                {opcao.destaque}
+                              </strong>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <p style={filterLabelStyle}>Diretor</p>
+                        <input type="search" placeholder="Ex: Christopher Nolan" value={diretor}
+                          onChange={e => setDiretor(e.target.value)} autoComplete="off" style={inputStyle} />
+                        {sugestoesDiretores.length > 0 && (
+                          <div role="listbox" style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, marginTop: 4, borderRadius: 10, overflow: 'hidden', background: '#1E1E2E', border: '1px solid #2D2D44' }}>
+                            {sugestoesDiretores.map(nome => (
+                              <div key={nome} role="option" aria-selected={diretor === nome}
+                                onClick={() => { setDiretor(nome); setSugestoesDiretores([]) }}
+                                style={{ padding: '9px 12px', color: '#E5E7EB', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid #2D2D44' }}>
+                                {nome}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {erro && (
                 <p style={{ color: '#F87171', fontSize: 12, textAlign: 'center' }}>⚠️ {erro}</p>
               )}
@@ -253,4 +372,15 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+const inputStyle: CSSProperties = {
+  width: '100%', padding: '10px 12px', borderRadius: 10, boxSizing: 'border-box',
+  background: '#1E1E2E', border: '1px solid #2D2D44', color: '#fff',
+  fontSize: 12, outline: 'none', fontFamily: 'Poppins, sans-serif'
+}
+
+const filterLabelStyle: CSSProperties = {
+  fontSize: 11, fontWeight: 600, color: '#9CA3AF', letterSpacing: '0.1em',
+  textTransform: 'uppercase', margin: '0 0 8px'
 }
