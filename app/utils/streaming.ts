@@ -32,22 +32,6 @@ const STREAMING_ALIASES: Record<string, number> = {
   'paramount plus': 531,
 }
 
-const STREAMING_URLS: Record<number, (query: string) => string> = {
-  8: query => `https://www.netflix.com/search?q=${query}`,
-  9: query => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${query}`,
-  119: query => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${query}`,
-  337: query => `https://www.disneyplus.com/search?q=${query}`,
-  1899: query => `https://play.max.com/search?q=${query}`,
-  2: query => `https://tv.apple.com/search?term=${query}`,
-  350: query => `https://tv.apple.com/search?term=${query}`,
-  307: query => `https://globoplay.globo.com/busca/?q=${query}`,
-  531: query => `https://www.paramountplus.com/br/search/?query=${query}`,
-}
-
-function getBuscaJustWatch(titulo: string) {
-  return `https://www.justwatch.com/br/busca?q=${encodeURIComponent(titulo)}`
-}
-
 function getStreamings(streaming: StreamingValue) {
   if (Array.isArray(streaming)) return streaming
   if (streaming === null || streaming === undefined || streaming === '') return []
@@ -94,35 +78,10 @@ export function getNomeStreaming(streaming: StreamingValue) {
   return nomes.length > 0 ? nomes.join(' + ') : null
 }
 
-export function getLinkStreaming(streaming: StreamingValue, titulo: string, watchUrl?: string) {
-  const id = getStreamings(streaming)
-    .map(item => getStreamingId(item))
-    .find((item): item is number => item !== null)
+export function getLinkStreaming(tmdbId: number) {
+  if (!tmdbId) return null
 
-  if (!id) {
-    return {
-      nome: 'JustWatch',
-      url: watchUrl || getBuscaJustWatch(titulo),
-      fallbackUrl: getBuscaJustWatch(titulo),
-      direto: false,
-    }
-  }
-
-  const urlBuilder = STREAMING_URLS[id]
-  if (!urlBuilder) {
-    return {
-      nome: STREAMINGS[id],
-      url: watchUrl || getBuscaJustWatch(titulo),
-      fallbackUrl: getBuscaJustWatch(titulo),
-      direto: false,
-    }
-  }
-
-  const query = encodeURIComponent(titulo)
   return {
-    nome: STREAMINGS[id],
-    url: urlBuilder(query),
-    fallbackUrl: getBuscaJustWatch(titulo),
-    direto: false,
+    url: `https://www.themoviedb.org/movie/${tmdbId}/watch?locale=BR`,
   }
 }
