@@ -32,14 +32,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={poppins.variable}>
-      <body className="font-poppins bg-[#0f0f1a]">
+      <head>
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4165796848226630"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
-        <script
+      </head>
+      <body className="font-poppins bg-[#0f0f1a]">
+        <Script
+          id="set-viewport-height"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               function setVh() {
@@ -63,7 +67,8 @@ export default function RootLayout({
             overflowX: "hidden",
             display: "flex",
             flexDirection: "column",
-            background: 'radial-gradient(ellipse at 50% 30%, #2D1B69 0%, #1A0F3C 40%, #0D0D1A 75%)'
+            background:
+              "radial-gradient(ellipse at 50% 30%, #2D1B69 0%, #1A0F3C 40%, #0D0D1A 75%)",
           }}
         >
           {children}
