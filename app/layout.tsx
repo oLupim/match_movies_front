@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -32,6 +33,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={poppins.variable}>
       <body className="font-poppins bg-[#0f0f1a]">
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4165796848226630"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
